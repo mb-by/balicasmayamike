@@ -61,7 +61,7 @@ nav a:hover{color:var(--ink)}
 
 /* Sections */
 .sec{padding:96px 0}
-.alt{background:color-mix(in srgb,var(--surface) 84%,transparent);border-block:1px solid var(--line)}
+.alt{background:color-mix(in srgb,var(--surface) 58%,transparent);border-block:1px solid var(--line)}
 h2{font-size:clamp(1.6rem,3.4vw,2.3rem);font-weight:700;letter-spacing:-.025em;margin-bottom:40px}
 h3{font-size:1.05rem;font-weight:600;line-height:1.35}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;transition:box-shadow .2s,transform .2s,border-color .2s}
@@ -287,3 +287,73 @@ nav a.nav-cta:hover{color:var(--bg);opacity:.85}
 
 /* Works section: no tinted panel, so the glass cards have the 3D mosaic behind them to frost */
 #projects.alt{background:none;border-block-color:transparent}
+
+
+/* =====================================================================
+   DARK SPACE THEME  (site is dark-only now)
+   ===================================================================== */
+body{background:radial-gradient(ellipse 80% 60% at 75% 0%,rgba(255,255,255,.07),transparent 60%),radial-gradient(ellipse 60% 50% at 8% 100%,rgba(255,255,255,.045),transparent 60%),var(--bg);background-attachment:fixed}
+#stars{position:fixed;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none}
+/* mosaic fades out toward the edges so it melts into the stars */
+#bg{-webkit-mask-image:radial-gradient(ellipse 95% 85% at 50% 45%,#000 25%,transparent 100%);mask-image:radial-gradient(ellipse 95% 85% at 50% 45%,#000 25%,transparent 100%)}
+
+/* arrow icon for buttons and links */
+.arr{display:inline-flex;align-items:center;gap:10px}
+.arr::after{content:"";width:13px;height:13px;flex:none;background:currentColor;transition:transform .2s;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7M8 7h9v9'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17L17 7M8 7h9v9'/%3E%3C/svg%3E") center/contain no-repeat}
+.arr:hover::after{transform:translate(2px,-2px)}
+.btn.pill{border-radius:99px;padding:15px 26px;gap:14px}
+.btn-line.pill{border-color:var(--chip-line);background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.btn-line.pill:hover{background:var(--ink);color:var(--bg)}
+
+/* floating header: MMB left, link pill centred, Hire Me right */
+.nav{top:0;left:0;right:0;width:auto;transform:none;background:none;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none}
+.nav.scrolled,[data-theme="dark"] .nav{box-shadow:none}
+.nav::before{content:"";position:absolute;inset:0 0 -24px;background:linear-gradient(var(--bg),transparent);opacity:0;transition:opacity .3s;pointer-events:none}
+.nav.scrolled::before{opacity:.8}
+.nav .wrap{max-width:1360px;padding:0 28px}
+.nav-in{position:relative;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:auto;padding-block:16px}
+.brand{justify-self:start;pointer-events:auto;font:800 1.55rem var(--sans);letter-spacing:-.03em}
+.brand span{color:var(--ink-2)}
+.nav nav{display:flex;gap:4px;padding:6px;background:var(--nav-bg);border:1px solid var(--chip-line);border-radius:99px;backdrop-filter:blur(14px) saturate(1.3);-webkit-backdrop-filter:blur(14px) saturate(1.3);pointer-events:auto}
+.nav nav a{padding:9px 16px;border-radius:99px;transition:background .2s,color .2s}
+.nav nav a:hover{background:rgba(255,255,255,.09);color:var(--ink)}
+.nav nav .m-only{display:none}
+.tools{justify-self:end;pointer-events:auto}
+.nav-hire{padding:11px 22px;gap:12px;font-size:.88rem}
+
+/* hero */
+.hero{border-bottom-color:transparent}
+.hero-grid{padding-top:150px}
+.avail{display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border:1px solid var(--chip-line);border-radius:99px;background:rgba(255,255,255,.04);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.avail::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ink);animation:pulse 1.8s infinite}
+h1{font-size:clamp(3rem,7.4vw,5.6rem);line-height:1;margin:26px 0 22px}
+.grad{background:linear-gradient(180deg,#FAFAFA 10%,#8B8B94 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{margin-bottom:16px}
+.hero-left .cta{margin:32px 0 26px}
+.links a.arr{text-decoration:none;gap:6px;color:var(--ink-2)}
+.links a.arr:hover{color:var(--ink)}
+.hero-right{display:flex;flex-direction:column;align-items:center;gap:22px;width:min(460px,100%);margin-left:auto}
+.hero-right .stage{width:100%;margin:0}
+.tagline{display:flex;align-items:center;gap:14px;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.tagline::before{content:"";width:34px;height:1px;background:var(--ink-2)}
+.loc{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+
+@media (max-width:860px){
+  .nav-in{grid-template-columns:1fr auto}
+  .nav-hire{display:none}
+  .nav nav{display:none;position:absolute;top:calc(100% - 4px);left:12px;right:12px;flex-direction:column;gap:0;padding:6px;border-radius:20px;background:var(--surface)}
+  .nav nav.open{display:flex}
+  .nav nav a{padding:14px 18px;border-top:0}
+  .nav nav .m-only{display:block;background:var(--ink);color:var(--bg);text-align:center;margin-top:4px}
+  .nav nav .m-only:hover{background:var(--ink);color:var(--bg)}
+  .burger{background:var(--nav-bg);border:1px solid var(--chip-line);border-radius:50%;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .hero-grid{padding-top:112px}
+  .hero-right{margin:0 auto;width:100%}
+  .hero-right .stage{width:min(330px,84vw)}
+  h1{margin-top:20px}
+}
+
+/* the spinning ring's bounding box must never create sideways scrolling on phones */
+.hero{overflow-x:clip}

@@ -386,10 +386,6 @@
     certModal.hidden = true; document.body.style.overflow = '';
     if (certFocus) certFocus.focus();
   };
-  $$('.cert-card').forEach(card => {
-    card.addEventListener('click', () => openCert(card));
-    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCert(card); } });
-  });
   $('#c-close').addEventListener('click', closeCert);
   certModal.addEventListener('click', e => { if (e.target === certModal) closeCert(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !certModal.hidden) closeCert(); });
@@ -451,5 +447,118 @@
     window.addEventListener('pointermove', e => { tx = (e.clientX / W - 0.5) * 2; ty = (e.clientY / H - 0.5) * 2; }, { passive: true });
     size();
     if (!reduce) requestAnimationFrame(loop);
+  })();
+
+  /* ---------- 15. Certificates: swipeable, endless card deck ----------
+     Drag/swipe the top card away and it goes to the back of the pile.
+     Arrows, dots, keyboard arrows and tapping a card behind also work.
+     Tapping the top card opens the big certificate popup. */
+  (() => {
+    const deck = $('.certs.deck'); if (!deck) return;
+    const all = $$('.cert-card', deck), n = all.length; if (!n) return;
+    const prevBtn = $('#c-prev'), nextBtn = $('#c-next'), dotsBox = $('#c-dots'), countEl = $('#c-count');
+    let order = all.slice(), busy = false;
+    all.forEach((c, i) => { c.dataset.i = i; });
+    const dots = all.map((_, i) => {
+      const d = document.createElement('button'); d.className = 'dot';
+      d.setAttribute('aria-label', 'Go to certificate ' + (i + 1));
+      d.addEventListener('click', () => goTo(i)); dotsBox.appendChild(d); return d;
+    });
+    const W = () => deck.clientWidth;
+
+    const layout = (ord) => {                       // position cards: 0 = top of the pile
+      ord.forEach((c, i) => {
+        c.style.setProperty('--o', Math.min(i, 3));
+        c.style.setProperty('--br', i === 0 ? '0deg' : ((i % 2 ? -1 : 1) * (1.5 + i * 0.4)) + 'deg');
+        c.classList.toggle('hidden', i > 3);
+        c.classList.toggle('top', i === 0);
+        c.tabIndex = i === 0 ? 0 : -1;
+        c.setAttribute('aria-hidden', i === 0 ? 'false' : 'true');
+      });
+      const cur = +ord[0].dataset.i;
+      dots.forEach((d, i) => d.classList.toggle('on', i === cur));
+      countEl.textContent = (cur + 1) + ' / ' + n;
+    };
+    const size = () => {                            // equal-height cards + room for the pile
+      all.forEach(c => { c.style.height = 'auto'; });
+      const h = Math.max(...all.map(c => c.offsetHeight));
+      all.forEach(c => { c.style.height = h + 'px'; });
+      deck.style.height = (h + 3 * 26 + 12) + 'px';
+    };
+
+    const fly = (dir) => {                          // top card flies off, then slides to the back
+      if (busy || n < 2) return; busy = true;
+      const top = order[0], rest = order.slice(1);
+      top.classList.remove('drag');
+      top.style.setProperty('--x', (dir * W() * 1.25) + 'px');
+      top.style.setProperty('--rot', (dir * 18) + 'deg');
+      top.classList.add('out');
+      layout(rest);
+      setTimeout(() => {
+        top.classList.add('snap'); top.classList.remove('out');
+        top.style.setProperty('--x', '0px'); top.style.setProperty('--rot', '0deg');
+        order = rest.concat(top); layout(order);
+        void top.offsetWidth; top.classList.remove('snap'); busy = false;
+      }, 380);
+    };
+    const back = () => {                            // bring the last card back to the top
+      if (busy || n < 2) return; busy = true;
+      const last = order[n - 1];
+      last.classList.add('snap', 'out');
+      last.style.setProperty('--x', (-W() * 1.25) + 'px'); last.style.setProperty('--rot', '-18deg');
+      last.style.setProperty('--o', 0); last.style.setProperty('--br', '0deg');
+      void last.offsetWidth;
+      last.classList.remove('snap', 'out');
+      last.style.setProperty('--x', '0px'); last.style.setProperty('--rot', '0deg');
+      order = [last].concat(order.slice(0, n - 1)); layout(order);
+      setTimeout(() => { busy = false; }, 420);
+    };
+    const goTo = (i) => {
+      const step = () => { if (+order[0].dataset.i === i || n < 2) return; fly(1); setTimeout(step, 430); };
+      step();
+    };
+
+    // drag / swipe the top card
+    let down = false, sx = 0, dx = 0, lastX = 0, lastT = 0, vx = 0, moved = 0;
+    deck.addEventListener('pointerdown', e => {
+      moved = 0;
+      if (e.button !== 0 || busy || n < 2 || !order[0].contains(e.target)) return;
+      down = true; sx = lastX = e.clientX; dx = 0; vx = 0; lastT = performance.now();
+      order[0].classList.add('drag');
+    });
+    window.addEventListener('pointermove', e => {
+      if (!down) return;
+      dx = e.clientX - sx; moved = Math.max(moved, Math.abs(dx));
+      const t = performance.now(); vx = (e.clientX - lastX) / Math.max(1, t - lastT); lastX = e.clientX; lastT = t;
+      order[0].style.setProperty('--x', dx + 'px'); order[0].style.setProperty('--rot', (dx * 0.05) + 'deg');
+    });
+    const release = () => {
+      if (!down) return; down = false;
+      const top = order[0]; top.classList.remove('drag');
+      if (performance.now() - lastT > 100) vx = 0;
+      if (Math.abs(dx) > 90 || (Math.abs(vx) > 0.6 && Math.abs(dx) > 20)) fly(dx > 0 ? 1 : -1);
+      else { top.style.setProperty('--x', '0px'); top.style.setProperty('--rot', '0deg'); }
+    };
+    window.addEventListener('pointerup', release);
+    window.addEventListener('pointercancel', release);
+    deck.addEventListener('dragstart', e => e.preventDefault());
+
+    deck.addEventListener('click', e => {
+      if (moved > 6) { moved = 0; e.preventDefault(); e.stopPropagation(); return; }   // it was a drag, not a tap
+      const card = e.target.closest('.cert-card'); if (!card) return;
+      if (card === order[0]) openCert(card); else goTo(+card.dataset.i);
+    });
+    deck.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); fly(1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); back(); }
+      else if ((e.key === 'Enter' || e.key === ' ') && e.target === order[0]) { e.preventDefault(); openCert(order[0]); }
+    });
+    prevBtn.addEventListener('click', back);
+    nextBtn.addEventListener('click', () => fly(1));
+
+    $$('img', deck).forEach(img => { img.addEventListener('load', size); img.addEventListener('error', size); });
+    let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(size, 150); });
+    layout(order); size();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
   })();
 })();

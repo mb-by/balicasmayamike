@@ -141,21 +141,6 @@
     for (let i = 0; i < 10; i++) { const s = document.createElement('i'); if (i < +g.dataset.level) s.className = 'on'; g.appendChild(s); }
   });
 
-  /* ---------- 7. Dark mode toggle (remembers choice) ---------- */
-  const root = document.documentElement, tbtn = $('#theme');
-  const syncTheme = () => {
-    const dark = root.getAttribute('data-theme') === 'dark';
-    tbtn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-    tbtn.setAttribute('aria-pressed', dark);
-  };
-  syncTheme();
-  tbtn.addEventListener('click', () => {
-    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    root.setAttribute('data-theme', next);
-    try { localStorage.setItem('theme', next); } catch (e) {}
-    syncTheme();
-  });
-
   /* ---------- 8. Infinite swipe carousel ----------
      Cards sit on an endless ring: drag/swipe, flick, use the arrows or the
      keyboard arrow keys and the feed keeps going in both directions. */
@@ -319,9 +304,7 @@
     const draw = (now) => {
       const T = now * 0.001 + window.scrollY * 0.0012;       // scrolling also moves the terrain
       mx += (tx - mx) * 0.05; my += (ty - my) * 0.05;
-      const dark = document.documentElement.getAttribute('data-theme') === 'dark';
-      const lo = dark ? 8 : 206, hi = dark ? 54 : 250;
-      const edge = dark ? 'rgba(255,255,255,0.08)' : 'rgba(9,9,11,0.09)';
+      const edge = 'rgba(255,255,255,0.07)';
       const cx = W / 2 + mx * 30, cy = H * 0.5 + my * 20, AMP = S * 1.1, w1 = cols + 1;
       for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
         const k = j * w1 + i;
@@ -345,8 +328,8 @@
         const nl = Math.hypot(nx, ny, nz) || 1;
         if (nz < 0) { nx = -nx; ny = -ny; nz = -nz; }
         const shade = Math.max(0, (nx * lx + ny * ly + nz * lz) / nl);
-        const g = (lo + (hi - lo) * shade) | 0;
-        ctx.fillStyle = 'rgb(' + g + ',' + g + ',' + g + ')';
+        // see-through white facets (alpha, not solid grey) so the stars show through the mosaic
+        ctx.fillStyle = 'rgba(255,255,255,' + (0.012 + 0.11 * shade).toFixed(3) + ')';
         ctx.beginPath(); ctx.moveTo(SX[a], SY[a]); ctx.lineTo(SX[b], SY[b]); ctx.lineTo(SX[c], SY[c]); ctx.closePath();
         ctx.fill(); ctx.stroke();
       };
@@ -410,4 +393,63 @@
   $('#c-close').addEventListener('click', closeCert);
   certModal.addEventListener('click', e => { if (e.target === certModal) closeCert(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !certModal.hidden) closeCert(); });
+
+  /* ---------- 14. Twinkling starfield (with parallax and the odd shooting star) ---------- */
+  (() => {
+    const cv = $('#stars'); if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let W, H, stars = [], mx = 0, my = 0, tx = 0, ty = 0, shoot = null, nextShoot = 4000, last = 0;
+    const size = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const n = Math.min(300, Math.round(W * H / 6500));
+      stars = Array.from({ length: n }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        r: Math.pow(Math.random(), 3) * 1.4 + 0.3,       // mostly tiny, a few bigger
+        z: 0.2 + Math.random() * 0.8,                    // depth: nearer stars move more
+        p: Math.random() * 6.28, sp: 0.5 + Math.random() * 1.6, a: 0.35 + Math.random() * 0.65
+      }));
+      draw(0);
+    };
+    const draw = (now) => {
+      ctx.clearRect(0, 0, W, H);
+      mx += (tx - mx) * 0.04; my += (ty - my) * 0.04;
+      const sy = window.scrollY;
+      for (const s of stars) {
+        const tw = 0.55 + 0.45 * Math.sin(now * 0.001 * s.sp + s.p);             // twinkle
+        const x = s.x + mx * s.z * 16;
+        const y = (((s.y - sy * s.z * 0.1 + my * s.z * 10) % H) + H) % H;       // slow scroll parallax, wraps around
+        ctx.globalAlpha = s.a * tw;
+        ctx.fillStyle = '#fff';
+        if (s.r > 1.1) { ctx.shadowColor = 'rgba(255,255,255,.9)'; ctx.shadowBlur = 8; }
+        ctx.beginPath(); ctx.arc(x, y, s.r, 0, 6.283); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = 1;
+      if (shoot) {                                                                 // shooting star
+        const g = ctx.createLinearGradient(shoot.x, shoot.y, shoot.x - shoot.vx * 14, shoot.y - shoot.vy * 14);
+        g.addColorStop(0, 'rgba(255,255,255,' + shoot.life + ')'); g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.strokeStyle = g; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(shoot.x, shoot.y); ctx.lineTo(shoot.x - shoot.vx * 14, shoot.y - shoot.vy * 14); ctx.stroke();
+        shoot.x += shoot.vx; shoot.y += shoot.vy; shoot.life -= 0.012;
+        if (shoot.life <= 0 || shoot.x < -100 || shoot.y > H + 100) shoot = null;
+      }
+    };
+    const loop = (t) => {
+      if (!document.hidden && t - last >= 32) {
+        if (!shoot && t > nextShoot) {
+          shoot = { x: W * (0.45 + Math.random() * 0.55), y: Math.random() * H * 0.35, vx: -(9 + Math.random() * 5), vy: 4 + Math.random() * 3, life: 1 };
+          nextShoot = t + 7000 + Math.random() * 8000;
+        }
+        draw(t); last = t;
+      }
+      requestAnimationFrame(loop);
+    };
+    window.addEventListener('resize', size);
+    window.addEventListener('pointermove', e => { tx = (e.clientX / W - 0.5) * 2; ty = (e.clientY / H - 0.5) * 2; }, { passive: true });
+    size();
+    if (!reduce) requestAnimationFrame(loop);
+  })();
 })();

@@ -454,7 +454,10 @@
   /* ---------- 15. Certifications: open popup + sliding row ---------- */
   (() => {
     const track = $('#cred-track'); if (!track) return;
-    const cards = $$('.cred', track);
+    // newest first: cards sort themselves by the year in each card, so new ones can be added anywhere
+    const yr = c => parseInt(($('.cred-year', c) || {}).textContent, 10) || 0;
+    const cards = $$('.cred', track).sort((a, b) => yr(b) - yr(a));
+    cards.forEach(c => track.appendChild(c));
     const nav = $('#cred-nav'), prevB = $('#cred-prev'), nextB = $('#cred-next'), count = $('#cred-count');
     track.style.setProperty('--n', cards.length);                       // lets the CSS share the width between 1-3 cards
     count.textContent = String(cards.length).padStart(2, '0') + ' credentials';
